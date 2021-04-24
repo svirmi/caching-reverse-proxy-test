@@ -5,36 +5,48 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/patrickmn/go-cache"
 )
+
+var pageCache = cache.New(5*time.Minute, 10*time.Minute)
 
 func loadData(w http.ResponseWriter, req *http.Request) {
 	var url = "https://www.jonathanfielding.com" + req.URL.Path
 
-	resp, err := http.Get(url)
+	cachedResponse, found := pageCache.Get(req.URL.Path)
 
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("HTTP Response Status:", resp.StatusCode, http.StatusText(resp.StatusCode))
-
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		fmt.Println("HTTP Status is in the 2xx range")
+	if found {
+		fmt.Fprintf(w, cachedResponse.(string))
 	} else {
-		fmt.Println("Error HTTP Status code")
+		resp, err := http.Get(url)
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer resp.Body.Close()
+
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("HTTP Response Status:", resp.StatusCode, http.StatusText(resp.StatusCode))
+
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			fmt.Println("HTTP Status is in the 2xx range")
+		} else {
+			fmt.Println("Error HTTP Status code")
+		}
+
+		bodyString := string(bodyBytes)
+
+		fmt.Fprint(w, bodyString)
 	}
 
-	bodyString := string(bodyBytes)
-
-	fmt.Fprint(w, bodyString)
 }
 
 func main() {
