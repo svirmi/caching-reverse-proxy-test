@@ -13,14 +13,14 @@ import (
 var pageCache = cache.New(5*time.Minute, 10*time.Minute)
 
 func loadData(w http.ResponseWriter, req *http.Request) {
-	var url = "https://www.jonathanfielding.com" + req.URL.Path
+	var url = "https://api" + req.URL.Path
 
 	cachedResponse, found := pageCache.Get(req.URL.Path)
 
 	if found {
 		fmt.Fprintf(w, cachedResponse.(string))
 	} else {
-		resp, err := http.Get(url)
+		resp, err := http.Get(url + string('?') + req.URL.RawQuery)
 
 		if err != nil {
 			panic(err)
@@ -38,6 +38,7 @@ func loadData(w http.ResponseWriter, req *http.Request) {
 
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			fmt.Println("HTTP Status is in the 2xx range")
+			fmt.Println(url + string('?') + req.URL.RawQuery)
 		} else {
 			fmt.Println("Error HTTP Status code")
 		}
