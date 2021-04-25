@@ -13,7 +13,7 @@ import (
 var pageCache = cache.New(5*time.Minute, 10*time.Minute)
 
 func loadData(w http.ResponseWriter, req *http.Request) {
-	var url = "https://api" + req.URL.Path
+	var url = "https://www.jonathanfielding.com" + req.URL.Path
 
 	cachedResponse, found := pageCache.Get(req.URL.Path)
 
