@@ -10,8 +10,6 @@ RUN go mod download
 
 COPY cmd cmd
 
-COPY . .
-
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /app cmd/main.go
 
 FROM alpine:3.9
