@@ -10,22 +10,38 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-var pageCache = cache.New(5*time.Minute, 10*time.Minute)
+var api = "https://api"
+var hotCache = cache.New(30*time.Second, 10*time.Minute)
+var coldCache = cache.New(-1, -1)
 
 func loadData(w http.ResponseWriter, req *http.Request) {
-	var api = "https://api"
+
 	var url = api + req.URL.Path + string('?') + req.URL.RawQuery
 
-	cachedResponse, found := pageCache.Get(url)
+	cachedResponse, found := hotCache.Get(url)
 
 	if found {
-		fmt.Println("Cached result: " + url)
+		fmt.Println("Cached: " + url)
+		coldCache.SetDefault(url, cachedResponse)
 		fmt.Fprintf(w, cachedResponse.(string))
 	} else {
-		resp, err := http.Get(url)
+
+		client := http.Client{
+			Timeout: 5 * time.Second,
+		}
+
+		resp, err := client.Get(url)
 
 		if err != nil {
-			panic(err)
+			cachedResponse, found = coldCache.Get(url)
+
+			if found {
+				fmt.Fprintf(w, cachedResponse.(string))
+			} else {
+				fmt.Fprintf(w, "") // todo : send response with error code
+			}
+
+			return
 		}
 
 		defer resp.Body.Close()
@@ -38,15 +54,17 @@ func loadData(w http.ResponseWriter, req *http.Request) {
 
 		fmt.Println("HTTP Response Status:", resp.StatusCode, http.StatusText(resp.StatusCode))
 
-		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-			fmt.Println("HTTP Status is in the 2xx range")
-		} else {
-			fmt.Println("Error HTTP Status code")
-		}
-
 		bodyString := string(bodyBytes)
 
-		pageCache.Set(url, bodyString, cache.DefaultExpiration)
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			hotCache.Set(url, bodyString, cache.DefaultExpiration)
+			coldCache.SetDefault(url, bodyString)
+			fmt.Println("HTTP Status is in the 2xx range")
+		} else {
+			cachedResponse, found = coldCache.Get(url) // handle case when cold cache not found
+			fmt.Println("Error HTTP Status code")
+			bodyString = cachedResponse.(string)
+		}
 
 		fmt.Fprint(w, bodyString)
 	}
