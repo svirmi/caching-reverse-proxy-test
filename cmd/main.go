@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"handlers"
+
 	"github.com/patrickmn/go-cache"
 )
 
@@ -79,6 +81,6 @@ func main() {
 	http.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "pong")
 	})
-	http.HandleFunc("/health-check", HealthCheckHandler)
+	http.HandleFunc("/health-check", handlers.HealthCheckHandler)
 	log.Fatal(http.ListenAndServe(":8811", nil))
 }
