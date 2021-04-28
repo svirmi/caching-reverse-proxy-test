@@ -76,5 +76,9 @@ func loadData(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	http.HandleFunc("/", loadData)
-	http.ListenAndServe(":8811", nil)
+	http.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "pong")
+	})
+	http.HandleFunc("/health-check", HealthCheckHandler)
+	log.Fatal(http.ListenAndServe(":8811", nil))
 }
